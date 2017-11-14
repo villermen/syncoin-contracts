@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 contract Wallet {
-    private address owner;
+    address private owner;
     
     event TransactionReceived(address sender, uint amount);
     event TransactionSent(address receiver, uint amount);
