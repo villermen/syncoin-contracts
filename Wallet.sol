@@ -6,7 +6,7 @@ contract Wallet {
     event TransactionReceived(address sender, uint amount);
     event TransactionSent(address receiver, uint amount);
     
-    function Wallet() public {
+    function Wallet() public payable {
         owner = msg.sender;
     }
     
