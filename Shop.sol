@@ -1,15 +1,13 @@
 pragma solidity ^0.4.18;
 
-contract Beer {
+contract Shop {
     struct Order {
         address customer;
         uint amount;
         uint expireTime;
+        bool delivering;
         bool isValid;
     }
-    
-    // Price of a beer in Wei
-    uint public beerPrice;
     
     // Time orders stay unconfirmed in seconds
     uint public orderLifetime;
@@ -26,7 +24,9 @@ contract Beer {
     uint private confirmedBalance = 0;
     
     event OrderCreated(string _reference, uint amount);
+    event OrderConfirmedDelivering(string _reference);
     event OrderConfirmed(string _reference);
+    event OrderCanceled(string _reference);
     
     function Beer(uint _beerPrice, uint _orderLifetime) public {
         owner = msg.sender;
@@ -52,10 +52,23 @@ contract Beer {
         });
         
         OrderCreated(_reference, msg.value);
+        
+        return true;
     }
     
-    // Confirms an order, making the funds unrecoverable for the customer
-    function confirm(string _reference) external {
+    // The shop confirms that they are delivering the order, locking the funds from being freely retrieved
+    function confirmDelivering(string _reference) external {
+        require(
+            msg.sender == owner &&
+            !unconfirmedOrders[_reference].isValid
+        );
+        
+        
+        // TODO: Luud bekijk het
+    }
+    
+    // Confirms that the order has been delivered, making the funds unrecoverable for the customer
+    function confirmReceived(string _reference) external {
         var _order = unconfirmedOrders[_reference];
         
         require(
@@ -70,9 +83,11 @@ contract Beer {
         delete unconfirmedOrders[_reference];
         
         OrderConfirmed(_reference);
+        
+        return true;
     }
     
-    // Cancel an expired order and issue a refund
+    // Cancel an expired or undelivered order and issue a refund
     function cancel(string _reference) external {
         var _order = unconfirmedOrders[_reference];
         
@@ -80,13 +95,16 @@ contract Beer {
             _order.isValid &&
             _order.customer == msg.sender &&
             // Order must be expired
-            block.timestamp > _order.expireTime
+            block.timestamp > _order.expireTime &&
+            
         );
         
         // Delete before transfer to prevent re-entrancy exploit (Solidity!)
         delete unconfirmedOrders[_reference];
         
         msg.sender.transfer(_order.amount);
+        
+        return true;
     }
     
     // Drain confirmed balance to owner
@@ -102,6 +120,8 @@ contract Beer {
         confirmedBalance = 0;
         
         msg.sender.transfer(drainableBalance);
+        
+        return true;
     }
     
     // Toggles active state
