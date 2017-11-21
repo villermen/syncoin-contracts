@@ -1,13 +1,14 @@
 pragma solidity ^0.4.18;
 
-contract Wallet {
+// Wallet that is owned by 
+contract OutsourcedWallet {
     address private owner;
     
     event TransactionReceived(address sender, uint amount);
     event TransactionSent(address receiver, uint amount);
     
-    function Wallet() public payable {
-        owner = msg.sender;
+    function OutsourcedWallet(address _owner) public payable {
+        owner = _owner;
     }
     
     function () payable external {
@@ -16,6 +17,7 @@ contract Wallet {
         }
     }
     
+    // TODO: Allow calling of contracts
     function send(address receiver, uint amount) external {
         require(msg.sender == owner);
         

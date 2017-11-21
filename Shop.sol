@@ -28,7 +28,7 @@ contract Shop {
     event OrderConfirmed(string _reference);
     event OrderCanceled(string _reference);
     
-    function Beer(uint _beerPrice, uint _orderLifetime) public {
+    function Shop(uint _beerPrice, uint _orderLifetime) public {
         owner = msg.sender;
         beerPrice = _beerPrice;
         orderLifetime = _orderLifetime;
