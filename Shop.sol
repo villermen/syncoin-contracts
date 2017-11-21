@@ -5,8 +5,8 @@ contract Shop {
         address customer;
         uint amount;
         uint expireTime;
-        bool delivering;
-        bool isValid;
+        bool delivering; // Shop is delivering order, locking payment until it expires
+        bool isValid; // Used for checking whether mapping contains an Order
     }
     
     // Time orders stay unconfirmed in seconds
@@ -28,18 +28,15 @@ contract Shop {
     event OrderConfirmed(string _reference);
     event OrderCanceled(string _reference);
     
-    function Shop(uint _beerPrice, uint _orderLifetime) public {
+    function Shop(uint _orderLifetime) public {
         owner = msg.sender;
-        beerPrice = _beerPrice;
         orderLifetime = _orderLifetime;
     }
     
     // Order a beer
-    function order(string _reference) payable external  {
+    function order(string _reference) payable external returns (bool) {
         require(
             active &&
-            // Paid value must be at least the price of a beer
-            msg.value >= beerPrice &&
             // Reference must not be in use
             !unconfirmedOrders[_reference].isValid
         );
@@ -48,6 +45,7 @@ contract Shop {
             customer: msg.sender,
             amount: msg.value,
             expireTime: block.timestamp + orderLifetime,
+            delivering: false,
             isValid: true
         });
         
@@ -57,18 +55,19 @@ contract Shop {
     }
     
     // The shop confirms that they are delivering the order, locking the funds from being freely retrieved
-    function confirmDelivering(string _reference) external {
+    function confirmDelivering(string _reference) external returns (bool) {
         require(
             msg.sender == owner &&
             !unconfirmedOrders[_reference].isValid
         );
         
+        unconfirmedOrders[_reference].delivering = true;
         
-        // TODO: Luud bekijk het
+        return true;
     }
     
     // Confirms that the order has been delivered, making the funds unrecoverable for the customer
-    function confirmReceived(string _reference) external {
+    function confirmReceived(string _reference) external returns (bool) {
         var _order = unconfirmedOrders[_reference];
         
         require(
@@ -88,15 +87,15 @@ contract Shop {
     }
     
     // Cancel an expired or undelivered order and issue a refund
-    function cancel(string _reference) external {
+    function cancel(string _reference) external returns (bool) {
         var _order = unconfirmedOrders[_reference];
         
         require(
             _order.isValid &&
             _order.customer == msg.sender &&
-            // Order must be expired
-            block.timestamp > _order.expireTime &&
-            
+            // Order must be expired or not being delivered
+            (block.timestamp > _order.expireTime ||
+            _order.delivering == false)
         );
         
         // Delete before transfer to prevent re-entrancy exploit (Solidity!)
@@ -108,7 +107,7 @@ contract Shop {
     }
     
     // Drain confirmed balance to owner
-    function drain() external {
+    function drain() external returns (bool) {
         require(
             msg.sender == owner && 
             confirmedBalance > 0
@@ -125,9 +124,11 @@ contract Shop {
     }
     
     // Toggles active state
-    function toggleActive() external {
+    function toggleActive() external returns (bool) {
         require(msg.sender == owner);
         
         active = !active;
+        
+        return true;
     }
 }

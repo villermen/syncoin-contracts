@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-// Wallet that is owned by 
+// Wallet that is owned by someone specified at creation time
 contract OutsourcedWallet {
     address private owner;
     
@@ -18,11 +18,13 @@ contract OutsourcedWallet {
     }
     
     // TODO: Allow calling of contracts
-    function send(address receiver, uint amount) external {
+    function send(address receiver, uint amount) external returns (bool) {
         require(msg.sender == owner);
         
         receiver.transfer(amount);
         
         TransactionSent(receiver, amount);
+        
+        return true;
     }
 }
