@@ -63,6 +63,8 @@ contract Shop {
         
         unconfirmedOrders[_reference].delivering = true;
         
+        OrderConfirmedDelivering(_reference);
+        
         return true;
     }
     
@@ -102,6 +104,8 @@ contract Shop {
         delete unconfirmedOrders[_reference];
         
         msg.sender.transfer(_order.amount);
+        
+        OrderCanceled(_reference);
         
         return true;
     }
