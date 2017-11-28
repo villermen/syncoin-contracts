@@ -17,15 +17,17 @@ contract OutsourcedWallet {
         }
     }
     
-    function send(address receiver, uint amount, bytes data) external returns (bool) {
-        require(msg.sender == owner);
-        
-        bool result = receiver.call.value(amount)(data);
-        
-        if (result) {
-            TransactionSent(receiver, amount);
+    function send(address receiver, uint amount, bytes data) external returns (uint8 result) {
+        if (msg.sender != owner) {
+            return 1;
         }
         
-        return result;
+        if (!receiver.call.value(amount)(data)) {
+            return 2;
+        }
+        
+        TransactionSent(receiver, amount);
+            
+        return 0;
     }
 }
