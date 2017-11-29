@@ -19,15 +19,15 @@ contract OutsourcedWallet {
     
     function send(address receiver, uint amount, bytes data) external returns (uint8 result) {
         if (msg.sender != owner) {
-            return 1;
+            return 2;
         }
         
         if (!receiver.call.value(amount)(data)) {
-            return 2;
+            return 3;
         }
         
         TransactionSent(receiver, amount);
             
-        return 0;
+        return 1;
     }
 }
