@@ -23,10 +23,10 @@ contract Shop {
     // Settled balance that the owner can withdraw
     uint private confirmedBalance = 0;
     
-    event OrderCreated(string _reference, uint amount);
-    event OrderConfirmedDelivering(string _reference);
-    event OrderConfirmed(string _reference);
-    event OrderCanceled(string _reference);
+    event OrderCreated(string reference, uint amount);
+    event OrderConfirmedDelivering(string reference);
+    event OrderConfirmedReceived(string reference);
+    event OrderCanceled(string reference);
     
     function Shop(uint _orderLifetime) public {
         owner = msg.sender;
@@ -83,7 +83,7 @@ contract Shop {
         
         delete unconfirmedOrders[_reference];
         
-        OrderConfirmed(_reference);
+        OrderConfirmedReceived(_reference);
         
         return true;
     }
