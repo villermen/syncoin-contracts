@@ -28,20 +28,20 @@ contract Shop {
     event OrderConfirmedReceived(string reference);
     event OrderCanceled(string reference);
     
-    function Shop(uint _orderLifetime) public {
-        owner = msg.sender;
+    function Shop(address _owner, uint _orderLifetime) public {
+        owner = _owner;
         orderLifetime = _orderLifetime;
     }
     
     // Order a beer
-    function order(string _reference) payable external returns (bool) {
+    function order(string reference) payable external returns (bool) {
         require(
             active &&
             // Reference must not be in use
-            !unconfirmedOrders[_reference].isValid
+            !unconfirmedOrders[reference].isValid
         );
         
-        unconfirmedOrders[_reference] = Order({
+        unconfirmedOrders[reference] = Order({
             customer: msg.sender,
             amount: msg.value,
             expireTime: block.timestamp + orderLifetime,
@@ -49,63 +49,63 @@ contract Shop {
             isValid: true
         });
         
-        OrderCreated(_reference, msg.value);
+        OrderCreated(reference, msg.value);
         
         return true;
     }
     
     // The shop confirms that they are delivering the order, locking the funds from being freely retrieved
-    function confirmDelivering(string _reference) external returns (bool) {
+    function confirmDelivering(string reference) external returns (bool) {
         require(
             msg.sender == owner &&
-            !unconfirmedOrders[_reference].isValid
+            !unconfirmedOrders[reference].isValid
         );
         
-        unconfirmedOrders[_reference].delivering = true;
+        unconfirmedOrders[reference].delivering = true;
         
-        OrderConfirmedDelivering(_reference);
+        OrderConfirmedDelivering(reference);
         
         return true;
     }
     
     // Confirms that the order has been delivered, making the funds unrecoverable for the customer
-    function confirmReceived(string _reference) external returns (bool) {
-        var _order = unconfirmedOrders[_reference];
+    function confirmReceived(string reference) external returns (bool) {
+        var order = unconfirmedOrders[reference];
         
         require(
-            _order.isValid &&
-            _order.customer == msg.sender &&
+            order.isValid &&
+            order.customer == msg.sender &&
             // Order must not be expired yet
-            block.timestamp <= _order.expireTime
+            block.timestamp <= order.expireTime
         );
         
-        confirmedBalance += _order.amount;
+        confirmedBalance += order.amount;
         
-        delete unconfirmedOrders[_reference];
+        delete unconfirmedOrders[reference];
         
-        OrderConfirmedReceived(_reference);
+        OrderConfirmedReceived(reference);
         
         return true;
     }
     
     // Cancel an expired or undelivered order and issue a refund
-    function cancel(string _reference) external returns (bool) {
-        var _order = unconfirmedOrders[_reference];
+    function cancel(string reference) external returns (bool) {
+        var order = unconfirmedOrders[reference];
         
         require(
-            _order.isValid &&
-            _order.customer == msg.sender &&
+            order.isValid &&
+            order.customer == msg.sender &&
             // Order must be expired or not being delivered
-            (block.timestamp > _order.expireTime ||
-            _order.delivering == false)
+            (block.timestamp > order.expireTime ||
+            order.delivering == false)
         );
         
         // Delete before transfer to prevent re-entrancy exploit (Solidity!)
-        delete unconfirmedOrders[_reference];
+        delete unconfirmedOrders[reference];
         
-        msg.sender.transfer(_order.amount);
+        msg.sender.transfer(order.amount);
         
-        OrderCanceled(_reference);
+        OrderCanceled(reference);
         
         return true;
     }
