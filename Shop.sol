@@ -56,9 +56,15 @@ contract Shop {
     
     // The shop confirms that they are delivering the order, locking the funds from being freely retrieved
     function confirmDelivering(string reference) external returns (bool) {
+        var order = unconfirmedOrders[reference];
+        
         require(
             msg.sender == owner &&
-            !unconfirmedOrders[reference].isValid
+            order.isValid &&
+            // Order must not be expired yet
+            block.timestamp <= order.expireTime &&
+            // Order must not already be in delivery
+            !order.delivering
         );
         
         unconfirmedOrders[reference].delivering = true;
@@ -76,7 +82,9 @@ contract Shop {
             order.isValid &&
             order.customer == msg.sender &&
             // Order must not be expired yet
-            block.timestamp <= order.expireTime
+            block.timestamp <= order.expireTime &&
+            // Order must be in delivery
+            order.delivering
         );
         
         confirmedBalance += order.amount;
@@ -88,16 +96,15 @@ contract Shop {
         return true;
     }
     
-    // Cancel an expired or undelivered order and issue a refund
+    // Cancels an expired or undelivering order and refunds it to the customer
     function cancel(string reference) external returns (bool) {
         var order = unconfirmedOrders[reference];
         
         require(
             order.isValid &&
             order.customer == msg.sender &&
-            // Order must be expired or not being delivered
-            (block.timestamp > order.expireTime ||
-            order.delivering == false)
+            // Order must be expired or not being delivered yet
+            (block.timestamp > order.expireTime || !order.delivering)
         );
         
         // Delete before transfer to prevent re-entrancy exploit (Solidity!)
@@ -113,11 +120,14 @@ contract Shop {
     // Drain confirmed balance to owner
     function drain() external returns (bool) {
         require(
-            msg.sender == owner && 
-            confirmedBalance > 0
+            msg.sender == owner
         );
         
         var drainableBalance = confirmedBalance;
+        
+        if (drainableBalance == 0) {
+            return true;
+        }
         
         // Reset before transfer to prevent re-entrancy exploit (Solidity!)
         confirmedBalance = 0;
