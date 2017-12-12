@@ -107,10 +107,12 @@ contract Shop {
             (block.timestamp > order.expireTime || !order.delivering)
         );
         
+        var amount = order.amount;
+        
         // Delete before transfer to prevent re-entrancy exploit (Solidity!)
         delete unconfirmedOrders[reference];
         
-        msg.sender.transfer(order.amount);
+        msg.sender.transfer(amount);
         
         OrderCanceled(reference);
         
